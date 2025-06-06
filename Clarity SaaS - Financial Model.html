@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clarity SaaS - Financial Model</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- Custom Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Custom styles to complement Tailwind */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* gray-50 */
+        }
+        /* Custom styles for range inputs */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb; /* gray-200 */
+            border-radius: 9999px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #3b82f6; /* blue-500 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #3b82f6; /* blue-500 */
+            cursor: pointer;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <!-- Header Section -->
+        <header class="bg-white p-6 rounded-xl shadow-sm mb-8 flex items-center gap-x-4">
+             <img src="https://i.imgur.com/1t3J33g.png" 
+                 alt="Clarity Logo" 
+                 class="h-10 w-auto"
+                 onerror="this.onerror=null;this.src='https://placehold.co/150x50/f97316/111827?text=Logo&font=inter';">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">SaaS Financial Model</h1>
+                <p class="text-gray-500 text-sm">Interactive 3-Year Financial Projections</p>
+            </div>
+        </header>
+
+        <!-- Controls Section -->
+        <div class="bg-white p-6 md:p-8 rounded-xl shadow-sm mb-8">
+            <!-- Scenario Buttons -->
+            <div class="mb-6">
+                <div class="flex flex-wrap gap-3" id="scenario-buttons">
+                    <button class="scenario-btn px-4 py-2 text-sm font-medium rounded-lg transition-all" onclick="loadScenario('conservative', this)">Conservative</button>
+                    <button class="scenario-btn px-4 py-2 text-sm font-medium rounded-lg transition-all active" onclick="loadScenario('base', this)">Base Case</button>
+                    <button class="scenario-btn px-4 py-2 text-sm font-medium rounded-lg transition-all" onclick="loadScenario('aggressive', this)">Aggressive</button>
+                </div>
+            </div>
+            
+            <!-- Input Sliders Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <!-- Starting Customers -->
+                <div>
+                    <label for="startingCustomers" class="block text-sm font-medium text-gray-700 mb-2">Starting Customers</label>
+                    <input type="range" id="startingCustomers" min="10" max="100" value="50" oninput="updateModel()">
+                    <div class="text-right text-sm font-semibold text-blue-600 mt-1" id="startingCustomersValue">50</div>
+                </div>
+                <!-- Monthly Growth Rate -->
+                <div>
+                    <label for="growthRate" class="block text-sm font-medium text-gray-700 mb-2">Monthly Growth Rate (%)</label>
+                    <input type="range" id="growthRate" min="5" max="25" value="15" step="0.5" oninput="updateModel()">
+                    <div class="text-right text-sm font-semibold text-blue-600 mt-1" id="growthRateValue">15%</div>
+                </div>
+                <!-- ARPU -->
+                <div>
+                    <label for="arpu" class="block text-sm font-medium text-gray-700 mb-2">ARPU ($/month)</label>
+                    <input type="range" id="arpu" min="300" max="900" value="600" step="50" oninput="updateModel()">
+                    <div class="text-right text-sm font-semibold text-blue-600 mt-1" id="arpuValue">$600</div>
+                </div>
+                <!-- Monthly Churn Rate -->
+                <div>
+                    <label for="churnRate" class="block text-sm font-medium text-gray-700 mb-2">Monthly Churn Rate (%)</label>
+                    <input type="range" id="churnRate" min="1" max="5" value="3" step="0.5" oninput="updateModel()">
+                    <div class="text-right text-sm font-semibold text-blue-600 mt-1" id="churnRateValue">3%</div>
+                </div>
+                <!-- CAC -->
+                <div>
+                    <label for="cac" class="block text-sm font-medium text-gray-700 mb-2">Customer Acquisition Cost ($)</label>
+                    <input type="range" id="cac" min="200" max="1000" value="500" step="50" oninput="updateModel()">
+                    <div class="text-right text-sm font-semibold text-blue-600 mt-1" id="cacValue">$500</div>
+                </div>
+                <!-- Gross Margin -->
+                <div>
+                    <label for="grossMargin" class="block text-sm font-medium text-gray-700 mb-2">Gross Margin (%)</label>
+                    <input type="range" id="grossMargin" min="60" max="85" value="75" oninput="updateModel()">
+                    <div class="text-right text-sm font-semibold text-blue-600 mt-1" id="grossMarginValue">75%</div>
+                </div>
+                <!-- Monthly OPEX -->
+                <div>
+                    <label for="opex" class="block text-sm font-medium text-gray-700 mb-2">Monthly Operating Expenses ($)</label>
+                    <input type="range" id="opex" min="50000" max="250000" value="100000" step="10000" oninput="updateModel()">
+                    <div class="text-right text-sm font-semibold text-blue-600 mt-1" id="opexValue">$100,000</div>
+                </div>
+                <!-- Initial Investment -->
+                <div>
+                    <label for="investment" class="block text-sm font-medium text-gray-700 mb-2">Initial Investment ($)</label>
+                    <input type="range" id="investment" min="500000" max="2000000" value="1500000" step="100000" oninput="updateModel()">
+                    <div class="text-right text-sm font-semibold text-blue-600 mt-1" id="investmentValue">$1,500,000</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics Cards Section -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6 mb-8">
+            <div class="metric-card"><div class="metric-label">Year 3 ARR</div><div id="year3ARR">$0</div></div>
+            <div class="metric-card"><div class="metric-label">Year 3 Customers</div><div id="year3Customers">0</div></div>
+            <div class="metric-card"><div class="metric-label">LTV:CAC Ratio</div><div id="ltvCac">0:1</div></div>
+            <div class="metric-card"><div class="metric-label">Months to Breakeven</div><div id="breakeven">0</div></div>
+            <div class="metric-card"><div class="metric-label">Cash at Year 3</div><div id="finalCash">$0</div></div>
+            <div class="metric-card"><div class="metric-label">ROI at Year 3</div><div id="roi">0%</div></div>
+        </div>
+        
+        <!-- Charts & Table Section -->
+        <div class="bg-white p-6 md:p-8 rounded-xl shadow-sm">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <!-- MRR Chart -->
+                <div class="lg:col-span-1">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Monthly Recurring Revenue (MRR)</h3>
+                    <div class="h-64"><canvas id="revenueChart"></canvas></div>
+                </div>
+                <!-- Customer Growth Chart -->
+                <div class="lg:col-span-1">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Customer Growth</h3>
+                    <div class="h-64"><canvas id="customerChart"></canvas></div>
+                </div>
+                 <!-- Cash Flow Chart -->
+                <div class="lg:col-span-1">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Cash Flow</h3>
+                    <div class="h-64"><canvas id="cashFlowChart"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Detailed Projections Table -->
+            <div>
+                <div class="flex justify-between items-center mb-4">
+                     <h3 class="text-lg font-semibold text-gray-900">Detailed Monthly Projections</h3>
+                     <button class="export-btn bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors" onclick="exportToCSV()">Export to CSV</button>
+                </div>
+                <div class="overflow-x-auto rounded-lg border border-gray-200">
+                    <table class="w-full text-sm text-left text-gray-500">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3">Month</th>
+                                <th scope="col" class="px-6 py-3 text-right">Customers</th>
+                                <th scope="col" class="px-6 py-3 text-right">MRR</th>
+                                <th scope="col" class="px-6 py-3 text-right">Revenue</th>
+                                <th scope="col" class="px-6 py-3 text-right">Gross Profit</th>
+                                <th scope="col" class="px-6 py-3 text-right">OpEx</th>
+                                <th scope="col" class="px-6 py-3 text-right">EBITDA</th>
+                                <th scope="col" class="px-6 py-3 text-right">Cash Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Table rows will be inserted by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA & STATE MANAGEMENT ---
+        let revenueChart, customerChart, cashFlowChart;
+        let modelData = {
+            labels: [], customers: [], mrr: [], revenue: [],
+            grossProfit: [], ebitda: [], cashBalance: []
+        };
+        const scenarios = {
+            conservative: { startingCustomers: 30, growthRate: 10, arpu: 500, churnRate: 4, cac: 600, grossMargin: 70, opex: 80000 },
+            base: { startingCustomers: 50, growthRate: 15, arpu: 600, churnRate: 3, cac: 500, grossMargin: 75, opex: 100000 },
+            aggressive: { startingCustomers: 75, growthRate: 20, arpu: 700, churnRate: 2.5, cac: 400, grossMargin: 80, opex: 150000 }
+        };
+
+        // --- UTILITY & FORMATTING FUNCTIONS ---
+        const formatCurrency = (value, unit = 'K', decimals = 0) => {
+            const divisor = unit === 'M' ? 1000000 : 1000;
+            return `$${(value / divisor).toFixed(decimals)}${unit}`;
+        };
+        const formatLargeNumber = (value) => value.toLocaleString();
+        
+        // Tailwind specific class helpers
+        const setMetricClass = (element, value) => {
+            element.classList.remove('text-green-600', 'text-red-600', 'text-gray-900');
+            if (value > 0) {
+                element.classList.add('text-green-600');
+            } else if (value < 0) {
+                element.classList.add('text-red-600');
+            } else {
+                 element.classList.add('text-gray-900');
+            }
+        };
+
+        // --- CHART INITIALIZATION ---
+        function initCharts() {
+            const commonOptions = {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { 
+                        beginAtZero: true,
+                        ticks: {
+                            callback: (value) => formatCurrency(value, 'k', 0),
+                            font: { size: 10 }
+                        }
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
+                tooltips: {
+                    callbacks: {
+                        label: (context) => `${context.dataset.label}: ${formatCurrency(context.parsed.y, 'k', 1)}`
+                    }
+                }
+            };
+
+            revenueChart = new Chart(document.getElementById('revenueChart').getContext('2d'), {
+                type: 'line',
+                data: { datasets: [{
+                    label: 'MRR', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0
+                }]},
+                options: commonOptions
+            });
+
+            customerChart = new Chart(document.getElementById('customerChart').getContext('2d'), {
+                type: 'bar',
+                data: { datasets: [{
+                    label: 'Customers', data: [], backgroundColor: '#10b981', borderRadius: 4
+                }]},
+                options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, ticks: { callback: (value) => value.toLocaleString() } } } }
+            });
+            
+            cashFlowChart = new Chart(document.getElementById('cashFlowChart').getContext('2d'), {
+                type: 'line',
+                data: { datasets: [{
+                    label: 'Cash', data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderWidth: 2, fill: true, tension: 0.4, pointRadius: 0
+                }]},
+                options: commonOptions
+            });
+        }
+        
+        // --- CORE MODEL CALCULATION ---
+        function calculateProjections() {
+            // Get input values from sliders
+            const inputs = {
+                startingCustomers: parseInt(document.getElementById('startingCustomers').value),
+                growthRate: parseFloat(document.getElementById('growthRate').value) / 100,
+                arpu: parseFloat(document.getElementById('arpu').value),
+                churnRate: parseFloat(document.getElementById('churnRate').value) / 100,
+                cac: parseFloat(document.getElementById('cac').value),
+                grossMargin: parseFloat(document.getElementById('grossMargin').value) / 100,
+                monthlyOpex: parseFloat(document.getElementById('opex').value),
+                investment: parseFloat(document.getElementById('investment').value),
+            };
+
+            // Reset data arrays
+            Object.keys(modelData).forEach(k => modelData[k] = []);
+            
+            let currentCustomers = inputs.startingCustomers;
+            let cash = inputs.investment;
+            let breakevenMonth = null;
+            
+            for (let i = 1; i <= 36; i++) {
+                modelData.labels.push(`M${i}`);
+                
+                const newCustomers = Math.floor(currentCustomers * inputs.growthRate);
+                const churnedCustomers = Math.floor(currentCustomers * inputs.churnRate);
+                currentCustomers = Math.max(0, currentCustomers + newCustomers - churnedCustomers);
+                
+                const monthlyMRR = currentCustomers * inputs.arpu;
+                const monthlyGrossProfit = monthlyMRR * inputs.grossMargin;
+                const acquisitionCost = newCustomers * inputs.cac;
+                const monthlyEBITDA = monthlyGrossProfit - inputs.monthlyOpex - acquisitionCost;
+                
+                cash += monthlyEBITDA;
+                
+                if (monthlyEBITDA > 0 && breakevenMonth === null) breakevenMonth = i;
+
+                // Push data to arrays
+                modelData.customers.push(currentCustomers);
+                modelData.mrr.push(monthlyMRR);
+                modelData.revenue.push(monthlyMRR);
+                modelData.grossProfit.push(monthlyGrossProfit);
+                modelData.ebitda.push(monthlyEBITDA);
+                modelData.cashBalance.push(cash);
+            }
+            
+            return { ...inputs, breakevenMonth };
+        }
+        
+        // --- UI UPDATE FUNCTIONS ---
+        function updateDOM(results) {
+            // Update slider display values
+            document.getElementById('startingCustomersValue').textContent = formatLargeNumber(results.startingCustomers);
+            document.getElementById('growthRateValue').textContent = `${(results.growthRate * 100).toFixed(1)}%`;
+            document.getElementById('arpuValue').textContent = `$${results.arpu}`;
+            document.getElementById('churnRateValue').textContent = `${(results.churnRate * 100).toFixed(1)}%`;
+            document.getElementById('cacValue').textContent = `$${results.cac}`;
+            document.getElementById('grossMarginValue').textContent = `${(results.grossMargin * 100)}%`;
+            document.getElementById('opexValue').textContent = `$${formatLargeNumber(results.monthlyOpex)}`;
+            document.getElementById('investmentValue').textContent = `$${formatLargeNumber(results.investment)}`;
+            
+            // Calculate and display key metrics
+            const year3ARR = modelData.mrr[35] * 12;
+            const year3Customers = modelData.customers[35];
+            const ltv = results.churnRate > 0 ? (results.arpu / results.churnRate) * results.grossMargin : 0;
+            const ltvCacRatio = ltv / results.cac;
+            const finalCashBalance = modelData.cashBalance[35];
+            const roi = ((finalCashBalance - results.investment) / results.investment) * 100;
+
+            const year3ARR_el = document.getElementById('year3ARR');
+            const ltvCac_el = document.getElementById('ltvCac');
+            const finalCash_el = document.getElementById('finalCash');
+            const roi_el = document.getElementById('roi');
+
+            year3ARR_el.textContent = formatCurrency(year3ARR, 'M', 1);
+            document.getElementById('year3Customers').textContent = formatLargeNumber(year3Customers);
+            ltvCac_el.textContent = `${ltvCacRatio.toFixed(1)}:1`;
+            document.getElementById('breakeven').textContent = results.breakevenMonth ? `${results.breakevenMonth} months` : 'N/A';
+            finalCash_el.textContent = formatCurrency(finalCashBalance, 'M', 1);
+            roi_el.textContent = `${roi.toFixed(0)}%`;
+
+            setMetricClass(year3ARR_el, year3ARR);
+            setMetricClass(ltvCac_el, ltvCacRatio - 3); // Healthy is >= 3
+            setMetricClass(finalCash_el, finalCashBalance);
+            setMetricClass(roi_el, roi);
+            
+            // Update charts
+            revenueChart.data.labels = modelData.labels;
+            revenueChart.data.datasets[0].data = modelData.mrr;
+            revenueChart.update();
+
+            const quarterlyLabels = modelData.labels.filter((_, i) => (i + 1) % 3 === 0);
+            const quarterlyCustomers = modelData.customers.filter((_, i) => (i + 1) % 3 === 0);
+            customerChart.data.labels = quarterlyLabels;
+            customerChart.data.datasets[0].data = quarterlyCustomers;
+            customerChart.update();
+            
+            cashFlowChart.data.labels = modelData.labels;
+            cashFlowChart.data.datasets[0].data = modelData.cashBalance;
+            cashFlowChart.update();
+            
+            // Update table
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            modelData.labels.forEach((label, i) => {
+                // Show every 3rd month in the table for brevity
+                if (i % 3 !== 0) return;
+                const row = tableBody.insertRow();
+                row.className = "bg-white border-b";
+                row.innerHTML = `
+                    <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">${label}</td>
+                    <td class="px-6 py-4 text-right">${formatLargeNumber(modelData.customers[i])}</td>
+                    <td class="px-6 py-4 text-right">${formatCurrency(modelData.mrr[i])}</td>
+                    <td class="px-6 py-4 text-right">${formatCurrency(modelData.revenue[i])}</td>
+                    <td class="px-6 py-4 text-right">${formatCurrency(modelData.grossProfit[i])}</td>
+                    <td class="px-6 py-4 text-right">${formatCurrency(results.monthlyOpex)}</td>
+                    <td class="px-6 py-4 text-right">${formatCurrency(modelData.ebitda[i])}</td>
+                    <td class="px-6 py-4 text-right">${formatCurrency(modelData.cashBalance[i])}</td>
+                `;
+            });
+        }
+        
+        // --- MAIN CONTROLLER & EVENT HANDLERS ---
+        function updateModel() {
+            const results = calculateProjections();
+            updateDOM(results);
+        }
+        
+        function loadScenario(scenario, btnElement) {
+            document.querySelectorAll('.scenario-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-blue-600', 'text-white');
+                btn.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+            });
+            btnElement.classList.add('active', 'bg-blue-600', 'text-white');
+            btnElement.classList.remove('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+
+            const values = scenarios[scenario];
+            Object.keys(values).forEach(key => {
+                document.getElementById(key).value = values[key];
+            });
+            updateModel();
+        }
+        
+        function exportToCSV() {
+            let csv = 'Month,Customers,MRR,Revenue,Gross Profit,EBITDA,Cash Balance\n';
+            modelData.labels.forEach((label, i) => {
+                const row = [
+                    label,
+                    modelData.customers[i],
+                    modelData.mrr[i].toFixed(0),
+                    modelData.revenue[i].toFixed(0),
+                    modelData.grossProfit[i].toFixed(0),
+                    modelData.ebitda[i].toFixed(0),
+                    modelData.cashBalance[i].toFixed(0)
+                ].join(',');
+                csv += row + '\n';
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', 'clarity_financial_projections.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            initCharts();
+            // Apply initial styles to scenario buttons
+            document.querySelectorAll('.scenario-btn').forEach(btn => {
+                if (btn.classList.contains('active')) {
+                    btn.classList.add('bg-blue-600', 'text-white');
+                } else {
+                    btn.classList.add('bg-gray-100', 'text-gray-700', 'hover:bg-gray-200');
+                }
+            });
+             // Add custom styles for metric cards
+            const style = document.createElement('style');
+            style.innerHTML = `
+                .metric-card { background: white; padding: 1rem; border-radius: 0.75rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); text-align: center; }
+                .metric-label { font-size: 0.8rem; color: #6b7280; margin-bottom: 0.25rem; font-weight: 500; }
+                .metric-card div:last-child { font-size: 1.5rem; font-weight: 700; color: #111827; }
+                .metric-card .text-green-600 { color: #16a34a; }
+                .metric-card .text-red-600 { color: #dc2626; }
+            `;
+            document.head.appendChild(style);
+            updateModel();
+        };
+    </script>
+</body>
+</html>
